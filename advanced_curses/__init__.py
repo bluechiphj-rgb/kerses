@@ -6,6 +6,8 @@ from .widgets import Widget, Label, TextInput, ProgressBar, WidgetManager
 from .events import EventLoop, KeyEvent, TimerHandle
 from .theme import ColorTheme, ThemeManager
 
+__version__ = "0.1.0"
+
 __all__ = [
     "CursesApp",
     "Screen",
@@ -24,4 +26,5 @@ __all__ = [
     "TimerHandle",
     "ColorTheme",
     "ThemeManager",
+    "__version__",
 ]

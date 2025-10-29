@@ -9,6 +9,20 @@
 
 ## 빠른 시작
 
+### 설치
+
+```bash
+pip install .
+```
+
+윈도우 환경에서는 추가적으로 `windows` 익스트라를 사용하여 curses 호환 패키지를 함께 설치할 수 있습니다.
+
+```bash
+pip install .[windows]
+```
+
+### 사용 예시
+
 ```python
 from advanced_curses import CursesApp, Label, HLayout, Rect, WidgetManager
 
