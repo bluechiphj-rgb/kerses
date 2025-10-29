@@ -1,20 +1,19 @@
-"""Pure Python example that trains a tiny neural network.
+"""Train a tiny neural language model without external dependencies.
 
-The script demonstrates how to train a simple two-layer neural network on a
-synthetic XOR-like dataset without relying on external machine learning
-libraries. It is intentionally lightweight so it can run in most restricted
-Python environments.
+This script builds a miniature neural network language model that learns to
+predict the next word in a sentence generated from a handcrafted grammar. The
+dataset is created on the fly so the script has no external data dependencies.
 
 Usage:
-    python train_ai.py --epochs 4000 --hidden-size 4 --learning-rate 0.3
+    python train_ai.py --epochs 500 --hidden-size 64 --context-size 3
 """
 
 from __future__ import annotations
 
 import argparse
-import math
 import random
 from dataclasses import dataclass
+from math import exp, log, tanh
 from typing import Iterable, List, Sequence, Tuple
 
 
@@ -30,49 +29,55 @@ class TrainingHistory:
         return iter(self.losses)
 
 
-def sigmoid(x: float) -> float:
-    # Prevent overflow when x is a large negative value.
-    if x >= 0:
-        z = math.exp(-x)
-        return 1.0 / (1.0 + z)
-    z = math.exp(x)
-    return z / (1.0 + z)
+def softmax(logits: Sequence[float]) -> List[float]:
+    # Shift by max logit for numerical stability.
+    max_logit = max(logits)
+    exps = [exp(logit - max_logit) for logit in logits]
+    total = sum(exps)
+    return [value / total for value in exps]
 
 
-class TwoLayerNN:
-    """A very small neural network with one hidden layer."""
+def cross_entropy(probs: Sequence[float], target_index: int) -> float:
+    eps = 1e-12
+    prob = min(max(probs[target_index], eps), 1.0 - eps)
+    return -log(prob)
+
+
+class TwoLayerLanguageModel:
+    """A very small neural language model with a single hidden layer."""
 
     def __init__(
         self,
-        input_dim: int,
+        vocab_size: int,
+        context_size: int,
         hidden_dim: int,
         learning_rate: float = 0.1,
         seed: int | None = None,
     ) -> None:
         rng = random.Random(seed)
         self.learning_rate = learning_rate
+        input_dim = vocab_size * context_size
+        self.vocab_size = vocab_size
+        self.context_size = context_size
         self.W1: Matrix = [
-            [rng.uniform(-1.0, 1.0) for _ in range(input_dim)] for _ in range(hidden_dim)
+            [rng.uniform(-0.5, 0.5) for _ in range(input_dim)] for _ in range(hidden_dim)
         ]
         self.b1: Vector = [0.0 for _ in range(hidden_dim)]
-        self.W2: Vector = [rng.uniform(-1.0, 1.0) for _ in range(hidden_dim)]
-        self.b2: float = 0.0
+        self.W2: Matrix = [
+            [rng.uniform(-0.5, 0.5) for _ in range(hidden_dim)] for _ in range(vocab_size)
+        ]
+        self.b2: Vector = [0.0 for _ in range(vocab_size)]
 
-    def forward(self, x: Sequence[float]) -> Tuple[Vector, float]:
+    def forward(self, x: Sequence[float]) -> Tuple[Vector, List[float]]:
         hidden: Vector = []
         for weights, bias in zip(self.W1, self.b1):
             activation = sum(w * xi for w, xi in zip(weights, x)) + bias
-            hidden.append(math.tanh(activation))
-        output_activation = sum(w * h for w, h in zip(self.W2, hidden)) + self.b2
-        return hidden, sigmoid(output_activation)
-
-    def compute_loss(self, predictions: Sequence[float], targets: Sequence[int]) -> float:
-        eps = 1e-12
-        total = 0.0
-        for pred, target in zip(predictions, targets):
-            pred = min(max(pred, eps), 1 - eps)
-            total += -(target * math.log(pred) + (1 - target) * math.log(1 - pred))
-        return total / len(predictions)
+            hidden.append(tanh(activation))
+        logits: List[float] = []
+        for weights, bias in zip(self.W2, self.b2):
+            logits.append(sum(w * h for w, h in zip(weights, hidden)) + bias)
+        probs = softmax(logits)
+        return hidden, probs
 
     def train(
         self,
@@ -84,34 +89,44 @@ class TwoLayerNN:
         losses: List[float] = []
         n_samples = len(X)
         for epoch in range(1, epochs + 1):
-            predictions: List[float] = []
-            grad_W2 = [0.0 for _ in self.W2]
-            grad_b2 = 0.0
+            total_loss = 0.0
+            grad_W2 = [[0.0 for _ in weights] for weights in self.W2]
+            grad_b2 = [0.0 for _ in self.b2]
             grad_W1 = [[0.0 for _ in weights] for weights in self.W1]
             grad_b1 = [0.0 for _ in self.b1]
 
             for sample, target in zip(X, y):
-                hidden, output = self.forward(sample)
-                predictions.append(output)
-                error = output - target
+                hidden, probs = self.forward(sample)
+                loss = cross_entropy(probs, target)
+                total_loss += loss
 
-                for h in range(len(self.W2)):
-                    grad_W2[h] += error * hidden[h]
-                grad_b2 += error
+                grad_logits = probs[:]
+                grad_logits[target] -= 1.0
 
-                for h, (weights, bias) in enumerate(zip(self.W1, self.b1)):
-                    hidden_derivative = (1 - hidden[h] ** 2) * self.W2[h] * error
-                    grad_b1[h] += hidden_derivative
-                    for i in range(len(weights)):
-                        grad_W1[h][i] += hidden_derivative * sample[i]
+                for v in range(self.vocab_size):
+                    for h in range(len(hidden)):
+                        grad_W2[v][h] += grad_logits[v] * hidden[h]
+                    grad_b2[v] += grad_logits[v]
 
-            loss = self.compute_loss(predictions, y)
-            losses.append(loss)
+                grad_hidden = [0.0 for _ in hidden]
+                for h in range(len(hidden)):
+                    for v in range(self.vocab_size):
+                        grad_hidden[h] += self.W2[v][h] * grad_logits[v]
+                    grad_hidden[h] *= 1 - hidden[h] ** 2
+
+                for h in range(len(hidden)):
+                    for i in range(len(sample)):
+                        grad_W1[h][i] += grad_hidden[h] * sample[i]
+                    grad_b1[h] += grad_hidden[h]
+
+            avg_loss = total_loss / n_samples
+            losses.append(avg_loss)
 
             lr = self.learning_rate / n_samples
-            for h in range(len(self.W2)):
-                self.W2[h] -= lr * grad_W2[h]
-            self.b2 -= lr * grad_b2
+            for v in range(self.vocab_size):
+                for h in range(len(self.W2[v])):
+                    self.W2[v][h] -= lr * grad_W2[v][h]
+                self.b2[v] -= lr * grad_b2[v]
 
             for h in range(len(self.W1)):
                 for i in range(len(self.W1[h])):
@@ -119,83 +134,155 @@ class TwoLayerNN:
                 self.b1[h] -= lr * grad_b1[h]
 
             if verbose_every and epoch % verbose_every == 0:
-                print(f"Epoch {epoch:4d} | Loss: {loss:.4f}")
+                print(f"Epoch {epoch:4d} | Loss: {avg_loss:.4f}")
         return TrainingHistory(losses)
 
-    def predict(self, X: Sequence[Sequence[float]]) -> List[int]:
-        return [int(self.forward(sample)[1] >= 0.5) for sample in X]
+    def predict_next(self, sample: Sequence[float]) -> int:
+        _, probs = self.forward(sample)
+        best = max(range(len(probs)), key=lambda idx: probs[idx])
+        return best
 
-    def evaluate(self, X: Sequence[Sequence[float]], y: Sequence[int]) -> float:
-        predictions = self.predict(X)
-        matches = sum(int(pred == target) for pred, target in zip(predictions, y))
-        return matches / len(y)
-
-
-def generate_xor_dataset(
-    n_samples: int,
-    noise: float = 0.1,
-    seed: int | None = None,
-) -> Tuple[List[Vector], List[int]]:
+    def sample(
+        self,
+        stoi: dict[str, int],
+        itos: dict[int, str],
+        max_tokens: int = 15,
+    ) -> List[str]:
+        context = [stoi["<bos>"]] * self.context_size
+        generated: List[str] = []
+        for _ in range(max_tokens):
+            encoded = encode_context(context, len(itos), self.context_size)
+            next_token = self.predict_next(encoded)
+            if itos[next_token] == "<eos>":
+                break
+            generated.append(itos[next_token])
+            context = context[1:] + [next_token]
+        return generated
+def generate_corpus(size: int, seed: int | None = None) -> List[List[str]]:
     rng = random.Random(seed)
-    X: List[Vector] = []
+    subjects = ["소년", "소녀", "마법사", "용", "로봇"]
+    verbs = ["만난다", "찾는다", "지킨다", "도와준다", "연습한다"]
+    objects = ["친구", "보물", "마을", "비밀", "모험"]
+    modifiers = ["용감한", "작은", "신비한", "은빛", "별빛"]
+    locations = ["숲에서", "성에서", "하늘에서", "바다에서", "도시에서"]
+
+    corpus: List[List[str]] = []
+    for _ in range(size):
+        sentence = [
+            rng.choice(modifiers),
+            rng.choice(subjects),
+            rng.choice(verbs),
+            rng.choice(modifiers),
+            rng.choice(objects),
+            rng.choice(locations),
+        ]
+        corpus.append(sentence)
+    return corpus
+
+
+def build_vocabulary(corpus: Sequence[Sequence[str]]) -> Tuple[dict[str, int], dict[int, str]]:
+    vocab = {"<bos>", "<eos>"}
+    for sentence in corpus:
+        vocab.update(sentence)
+    sorted_vocab = sorted(vocab)
+    stoi = {token: idx for idx, token in enumerate(sorted_vocab)}
+    itos = {idx: token for token, idx in stoi.items()}
+    return stoi, itos
+
+
+def encode_context(context: Sequence[int], vocab_size: int, context_size: int) -> List[float]:
+    vector = [0.0 for _ in range(vocab_size * context_size)]
+    for position, token_idx in enumerate(context):
+        offset = position * vocab_size + token_idx
+        vector[offset] = 1.0
+    return vector
+
+
+def build_training_data(
+    corpus: Sequence[Sequence[str]],
+    stoi: dict[str, int],
+    context_size: int,
+) -> Tuple[List[List[float]], List[int]]:
+    X: List[List[float]] = []
     y: List[int] = []
-    for _ in range(n_samples):
-        x1 = rng.uniform(-1.0, 1.0)
-        x2 = rng.uniform(-1.0, 1.0)
-        if noise > 0:
-            x1 += rng.gauss(0.0, noise)
-            x2 += rng.gauss(0.0, noise)
-        X.append([x1, x2])
-        y.append(int(x1 * x2 < 0))
+    for sentence in corpus:
+        context = [stoi["<bos>"]] * context_size
+        for token in sentence + ["<eos>"]:
+            token_idx = stoi[token]
+            X.append(encode_context(context, len(stoi), context_size))
+            y.append(token_idx)
+            context = context[1:] + [token_idx]
     return X, y
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train a simple neural network on a synthetic XOR dataset.")
-    parser.add_argument("--epochs", type=int, default=3000, help="Number of training epochs (default: 3000)")
-    parser.add_argument("--learning-rate", type=float, default=0.3, help="Gradient descent learning rate (default: 0.3)")
-    parser.add_argument("--hidden-size", type=int, default=5, help="Number of hidden units (default: 5)")
-    parser.add_argument("--samples", type=int, default=400, help="Number of synthetic samples to generate (default: 400)")
-    parser.add_argument("--noise", type=float, default=0.15, help="Standard deviation of Gaussian noise (default: 0.15)")
+    parser = argparse.ArgumentParser(
+        description="Train a miniature neural language model on a synthetic corpus."
+    )
+    parser.add_argument("--epochs", type=int, default=600, help="Number of training epochs (default: 600)")
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=0.4,
+        help="Gradient descent learning rate (default: 0.4)",
+    )
+    parser.add_argument(
+        "--hidden-size", type=int, default=64, help="Number of hidden units (default: 64)"
+    )
+    parser.add_argument(
+        "--context-size",
+        type=int,
+        default=3,
+        help="Number of preceding tokens the model conditions on (default: 3)",
+    )
+    parser.add_argument(
+        "--corpus-size",
+        type=int,
+        default=500,
+        help="Number of synthetic sentences to generate for training (default: 500)",
+    )
     parser.add_argument("--seed", type=int, default=7, help="Random seed for reproducibility (default: 7)")
     parser.add_argument(
         "--verbose-every",
         type=int,
-        default=300,
-        help="Print loss every N epochs (set to 0 to disable, default: 300)",
+        default=50,
+        help="Print loss every N epochs (set to 0 to disable, default: 50)",
+    )
+    parser.add_argument(
+        "--sample-length",
+        type=int,
+        default=12,
+        help="Number of tokens to sample from the trained model (default: 12)",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    X, y = generate_xor_dataset(args.samples, noise=args.noise, seed=args.seed)
+    corpus = generate_corpus(args.corpus_size, seed=args.seed)
+    stoi, itos = build_vocabulary(corpus)
+    X, y = build_training_data(corpus, stoi, args.context_size)
 
-    split_idx = int(0.8 * len(X))
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
-
-    model = TwoLayerNN(
-        input_dim=2,
+    model = TwoLayerLanguageModel(
+        vocab_size=len(stoi),
+        context_size=args.context_size,
         hidden_dim=args.hidden_size,
         learning_rate=args.learning_rate,
         seed=args.seed,
     )
 
     history = model.train(
-        X_train,
-        y_train,
+        X,
+        y,
         epochs=args.epochs,
         verbose_every=args.verbose_every if args.verbose_every > 0 else None,
     )
 
-    train_accuracy = model.evaluate(X_train, y_train)
-    test_accuracy = model.evaluate(X_test, y_test)
-
     print("Training complete!")
     print(f"Final training loss: {history.losses[-1]:.4f}")
-    print(f"Training accuracy: {train_accuracy * 100:.2f}%")
-    print(f"Test accuracy: {test_accuracy * 100:.2f}%")
+
+    generated = model.sample(stoi, itos, max_tokens=args.sample_length)
+    print("Generated sentence:", " ".join(generated))
 
 
 if __name__ == "__main__":
