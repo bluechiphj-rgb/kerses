@@ -254,6 +254,12 @@ def parse_args() -> argparse.Namespace:
         default=12,
         help="Number of tokens to sample from the trained model (default: 12)",
     )
+    parser.add_argument(
+        "--history-out",
+        type=str,
+        default=None,
+        help="Optional path to write a CSV log of epoch losses",
+    )
     return parser.parse_args()
 
 
@@ -280,6 +286,13 @@ def main() -> None:
 
     print("Training complete!")
     print(f"Final training loss: {history.losses[-1]:.4f}")
+
+    if args.history_out:
+        with open(args.history_out, "w", encoding="utf-8") as history_file:
+            history_file.write("epoch,loss\n")
+            for epoch, loss in enumerate(history.losses, start=1):
+                history_file.write(f"{epoch},{loss}\n")
+        print(f"Saved training history to {args.history_out}")
 
     generated = model.sample(stoi, itos, max_tokens=args.sample_length)
     print("Generated sentence:", " ".join(generated))
