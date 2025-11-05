@@ -1,0 +1,4 @@
+# netlify/functions/requirements.txt
+# 여기에 필요한 Python 라이브러리 목록을 한 줄에 하나씩 작성합니다.
+# 예: requests==2.28.1
+# 이 프로젝트에서는 내장 모듈만 사용하므로 비워두어도 됩니다.
