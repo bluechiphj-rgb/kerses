@@ -51,7 +51,40 @@ legal:
 analytics:
   enable_webhook: true
   discord_webhook_url: ""
+autobuild:
+  enabled: true
+  blueprints:
+    - key: starter_hq
+      displayName: "스타터 주식회사"
+      type: LLC
+      branches:
+        - name: hq
+          world: world
+          x: 0.0
+          y: 64.0
+          z: 0.0
+          openStore: true
+      inventory:
+        - branch: hq
+          sku: starter_widget
+          name: "Starter Widget"
+          cost: 320.0
+          price: 520.0
+          reorderPoint: 40
+          initialWarehouseStock: 120
+          initialStoreStock: 40
+          holdingCost: 6.0
+          orderCost: 240.0
+          expectedDemand: 900
+          leadTimeDays: 3
 ```
+
+## 회사 자동 빌드 오토메이션
+
+- `autobuild.enabled`를 `true`로 설정하면 `/company autobuild <설계도>` 명령으로 설계도 기반 회사를 즉시 구축합니다.
+- 각 설계도는 지점 좌표, 상점 오픈 여부, EOQ 계산을 위한 주문/보관 비용과 예상 수요를 포함할 수 있습니다.
+- 명령 두 번째 인자로 회사명을 입력하면 `displayName` 대신 해당 이름으로 등록됩니다.
+- 창고 입고 이후 즉시 상점 재고로 이관되며, EOQ/안전재고/재주문점 수치가 계산돼 대시보드·알림에 반영됩니다.
 
 ## 핵심 명령어
 
@@ -64,6 +97,7 @@ analytics:
 | `/company payroll run <companyId>` | 급여 사이클을 실행하고 Ledger에 반영합니다. |
 | `/company logistics dispatch <companyId>` | 배송 경로를 산출하고 SLA를 검증합니다. |
 | `/company simulate` | 대표 비즈니스 시나리오를 실행합니다. |
+| `/company autobuild <설계도> [회사명]` | `config.yml` 설계도를 기반으로 회사/지점/재고를 자동 구축합니다. |
 | `/admin reload` | 구성/메시지 리로드 |
 | `/admin migrate` | Flyway 마이그레이션 실행 |
 | `/admin flush` | 감사 로그를 즉시 플러시 |
@@ -72,6 +106,7 @@ analytics:
 
 - `complife.*` : 전체 권한 (기본 OP)
 - `complife.company.*` : 회사/지점/상점 명령
+- `complife.company.autobuild` : 자동 빌드 명령 실행
 - `complife.hr.*` : HR/급여 모듈
 - `complife.finance.*` : 회계/세무/재무 모듈
 - `complife.admin.*` : 관리 명령 (reload/migrate/rollback 등)

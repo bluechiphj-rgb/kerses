@@ -5,6 +5,7 @@ import com.kwonpop.companylife.common.gui.ModuleDashboardGui
 import com.kwonpop.companylife.common.service.MessageService
 import com.kwonpop.companylife.common.service.ServiceRegistry
 import com.kwonpop.companylife.modules.company.CompanyService
+import com.kwonpop.companylife.modules.company.CompanyAutoBuilder
 import com.kwonpop.companylife.modules.core.ScenarioOrchestrator
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
@@ -19,6 +20,7 @@ class CompanyCommand(
 
     private val messages: MessageService = services.resolve()
     private val companyService: CompanyService = services.resolve()
+    private val autoBuilder: CompanyAutoBuilder = services.resolve()
     private val orchestrator: ScenarioOrchestrator = services.resolve()
     private val dashboards: ModuleDashboardGui.Registry = services.resolve()
 
@@ -32,6 +34,7 @@ class CompanyCommand(
             "branch" -> handleBranch(sender, args)
             "gui" -> handleGui(sender, args)
             "simulate" -> handleSimulate(sender)
+            "autobuild" -> handleAutoBuild(sender, args)
             else -> {
                 messages.send(sender, "command.invalid_usage")
                 true
@@ -94,6 +97,45 @@ class CompanyCommand(
         return true
     }
 
+    private fun handleAutoBuild(sender: CommandSender, args: Array<out String>): Boolean {
+        if (!sender.hasPermission("complife.company.autobuild")) {
+            messages.send(sender, "command.no_permission")
+            return true
+        }
+        val blueprint = args.getOrNull(1)
+        if (blueprint.isNullOrBlank()) {
+            messages.send(sender, "command.invalid_usage")
+            return true
+        }
+        val nameOverride = args.getOrNull(2)
+        autoBuilder.autoBuild(blueprint, nameOverride).thenAccept { summary ->
+            messages.send(
+                sender,
+                "company.autobuild.success",
+                "name" to summary.companyName,
+                "branches" to summary.branchCount.toString(),
+                "products" to summary.productCount.toString()
+            )
+        }.exceptionally { throwable ->
+            val cause = throwable.cause ?: throwable
+            val key = when {
+                cause is IllegalStateException && cause.message == "disabled" -> "company.autobuild.disabled"
+                cause is IllegalArgumentException && cause.message?.startsWith("unknown:") == true -> {
+                    val requested = cause.message?.substringAfter(":") ?: blueprint
+                    messages.send(sender, "company.autobuild.unknown", "key" to requested)
+                    return@exceptionally null
+                }
+                else -> {
+                    messages.send(sender, "company.autobuild.failed", "error" to (cause.message ?: cause.javaClass.simpleName))
+                    return@exceptionally null
+                }
+            }
+            messages.send(sender, key)
+            null
+        }
+        return true
+    }
+
     override fun onTabComplete(
         sender: CommandSender,
         command: Command,
@@ -101,10 +143,13 @@ class CompanyCommand(
         args: Array<out String>
     ): MutableList<String> {
         if (args.size == 1) {
-            return mutableListOf("create", "branch", "gui", "simulate")
+            return mutableListOf("create", "branch", "gui", "simulate", "autobuild")
         }
         if (args.size == 2 && args[0].equals("gui", true)) {
             return dashboards.ids().toMutableList()
+        }
+        if (args.size == 2 && args[0].equals("autobuild", true)) {
+            return autoBuilder.listBlueprintKeys().toMutableList()
         }
         return mutableListOf()
     }

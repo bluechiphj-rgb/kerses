@@ -32,6 +32,32 @@ manufacturing:
 analytics:
   enable_webhook: true
   discord_webhook_url: ""
+autobuild:
+  enabled: true
+  blueprints:
+    - key: starter_hq
+      displayName: "스타터 주식회사"
+      type: LLC
+      branches:
+        - name: hq
+          world: world
+          x: 0.0
+          y: 64.0
+          z: 0.0
+          openStore: true
+      inventory:
+        - branch: hq
+          sku: starter_widget
+          name: "Starter Widget"
+          cost: 320.0
+          price: 520.0
+          reorderPoint: 40
+          initialWarehouseStock: 120
+          initialStoreStock: 40
+          holdingCost: 6.0
+          orderCost: 240.0
+          expectedDemand: 900
+          leadTimeDays: 3
 i18n:
   - ko_KR
   - en_US
@@ -40,6 +66,10 @@ messages:
   prefix: "<gradient:#4ecdc4:#556270>[CompanyLife]</gradient> "
   company.created: "{prefix}<green>새 회사가 설립되었습니다: <yellow>{name}</yellow></green>"
   company.branch.created: "{prefix}<green>새 지점이 등록되었습니다: <yellow>{branch}</yellow></green>"
+  company.autobuild.success: "{prefix}<green>{name}</green> 자동 빌드 완료! <gray>지점 {branches}곳 / 제품 {products}개</gray>"
+  company.autobuild.failed: "{prefix}<red>자동 빌드 실패:</red> {error}"
+  company.autobuild.disabled: "{prefix}<red>자동 빌드가 비활성화되어 있습니다.</red>"
+  company.autobuild.unknown: "{prefix}<red>자동 빌드 설계도를 찾을 수 없습니다: {key}</red>"
   command.only_player: "{prefix}<red>플레이어만 사용 가능합니다.</red>"
   command.no_permission: "{prefix}<red>권한이 부족합니다.</red>"
   command.invalid_usage: "{prefix}<red>명령어 사용법이 올바르지 않습니다.</red>"

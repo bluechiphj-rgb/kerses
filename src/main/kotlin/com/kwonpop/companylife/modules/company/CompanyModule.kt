@@ -1,5 +1,6 @@
 package com.kwonpop.companylife.modules.company
 
+import com.kwonpop.companylife.common.config.ConfigService
 import com.kwonpop.companylife.common.gui.ModuleDashboardGui
 import com.kwonpop.companylife.common.persistence.DatabaseManager
 import com.kwonpop.companylife.common.service.EventBus
@@ -17,11 +18,14 @@ class CompanyModule : Module {
 
     override fun onEnable(services: ServiceRegistry) {
         val db: DatabaseManager = services.resolve()
+        val config: ConfigService = services.resolve()
         val ledger: LedgerService = services.resolve()
         val store: StoreService = services.resolve()
         val warehouse: WarehouseService = services.resolve()
         val eventBus: EventBus = services.resolve()
-        services.register(CompanyService(db.companyRepository, db.branchRepository, ledger, store, warehouse, eventBus))
+        val companyService = CompanyService(db.companyRepository, db.branchRepository, ledger, store, warehouse, eventBus)
+        services.register(companyService)
+        services.register(CompanyAutoBuilder(config::root, companyService))
 
         services.dashboardRegistry().register(
             ModuleDashboardGui.Descriptor(

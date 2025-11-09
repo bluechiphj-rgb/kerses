@@ -37,6 +37,7 @@ data class RootConfig(
     val payroll: PayrollConfig = PayrollConfig(),
     val manufacturing: ManufacturingConfig = ManufacturingConfig(),
     val analytics: AnalyticsConfig = AnalyticsConfig(),
+    val autobuild: AutoBuildConfig = AutoBuildConfig(),
     val i18n: List<String> = listOf("ko_KR", "en_US"),
     val debug: Boolean = false,
     val messages: Map<String, String> = defaultMessages()
@@ -93,10 +94,52 @@ data class AnalyticsConfig(
     val discord_webhook_url: String = ""
 )
 
+data class AutoBuildConfig(
+    val enabled: Boolean = false,
+    val blueprints: List<CompanyBlueprintConfig> = emptyList()
+)
+
+data class CompanyBlueprintConfig(
+    val key: String,
+    val displayName: String,
+    val type: String = "LLC",
+    val regNo: String? = null,
+    val branches: List<BranchBlueprintConfig> = emptyList(),
+    val inventory: List<ProductBlueprintConfig> = emptyList()
+)
+
+data class BranchBlueprintConfig(
+    val name: String,
+    val world: String,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val openStore: Boolean = true
+)
+
+data class ProductBlueprintConfig(
+    val branch: String,
+    val sku: String,
+    val name: String,
+    val cost: Double,
+    val price: Double,
+    val reorderPoint: Int,
+    val initialWarehouseStock: Int = 0,
+    val initialStoreStock: Int = 0,
+    val holdingCost: Double = 5.0,
+    val orderCost: Double = 100.0,
+    val expectedDemand: Int = 120,
+    val leadTimeDays: Int = 3
+)
+
 fun defaultMessages(): Map<String, String> = mapOf(
     "prefix" to "<gradient:#4ecdc4:#556270>[CompanyLife]</gradient> ",
     "company.created" to "{prefix}<green>새 회사가 설립되었습니다: <yellow>{name}</yellow></green>",
     "company.branch.created" to "{prefix}<green>새 지점이 등록되었습니다: <yellow>{branch}</yellow></green>",
+    "company.autobuild.success" to "{prefix}<green>{name}</green> 자동 빌드 완료! <gray>지점 {branches}곳 / 제품 {products}개</gray>",
+    "company.autobuild.failed" to "{prefix}<red>자동 빌드 실패:</red> {error}",
+    "company.autobuild.disabled" to "{prefix}<red>자동 빌드가 비활성화되어 있습니다.</red>",
+    "company.autobuild.unknown" to "{prefix}<red>자동 빌드 설계도 '{key}'를 찾을 수 없습니다.</red>",
     "command.only_player" to "{prefix}<red>플레이어만 사용 가능합니다.</red>",
     "command.no_permission" to "{prefix}<red>권한이 부족합니다.</red>",
     "command.invalid_usage" to "{prefix}<red>명령어 사용법이 올바르지 않습니다.</red>"
