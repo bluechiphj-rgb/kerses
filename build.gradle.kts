@@ -1,4 +1,4 @@
-import io.papermc.paperweight.userdev.ReobfArtifactConfiguration
+import io.papermc.paperweight.tasks.ReobfJarTask
 
 plugins {
     kotlin("jvm") version "1.9.23"
@@ -50,10 +50,6 @@ dependencies {
 }
 
 tasks {
-    build {
-        dependsOn(shadowJar)
-    }
-
     test {
         useJUnitPlatform()
     }
@@ -68,8 +64,8 @@ tasks {
         relocate("com.fasterxml.jackson", "com.kwonpop.companylife.libs.jackson")
     }
 
-    withType<io.papermc.paperweight.tasks.RemapJarTask> {
+    withType<ReobfJarTask>().configureEach {
         dependsOn(shadowJar)
-        inputFile.set(shadowJar.get().archiveFile)
+        inputJar.set(shadowJar.flatMap { it.archiveFile })
     }
 }
