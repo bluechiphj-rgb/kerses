@@ -45,9 +45,12 @@ import com.kwonpop.companylife.modules.risk.RiskModule
 import com.kwonpop.companylife.modules.security.SecurityModule
 import com.kwonpop.companylife.modules.stock.StockModule
 import com.kwonpop.companylife.modules.store.StoreModule
+import com.kwonpop.companylife.modules.store.StoreService
 import com.kwonpop.companylife.modules.tax.TaxModule
+import com.kwonpop.companylife.modules.tax.TaxService
 import com.kwonpop.companylife.modules.transport.TransportModule
 import com.kwonpop.companylife.modules.warehouse.WarehouseModule
+import com.kwonpop.companylife.modules.warehouse.WarehouseService
 import com.kwonpop.companylife.modules.compliance.ComplianceModule
 import net.kyori.adventure.platform.bukkit.BukkitAudiences
 import org.bukkit.plugin.java.JavaPlugin
@@ -74,6 +77,9 @@ class CompanyLifePlugin : JavaPlugin(), CompanyLifeAPI {
         val lpHelper = LuckPermsHelper(server.servicesManager)
         val placeholderBridge = PlaceholderBridge(this, scheduler)
         val webhookClient = DiscordWebhookClient { configService.root() }
+        val storeService = StoreService(eventBus)
+        val warehouseService = WarehouseService()
+        val taxService = TaxService(database.ledgerRepository, eventBus)
 
         services.register(configService)
         services.register(messageService)
@@ -86,6 +92,9 @@ class CompanyLifePlugin : JavaPlugin(), CompanyLifeAPI {
         services.register(lpHelper)
         services.register(placeholderBridge)
         services.register(webhookClient)
+        services.register(storeService)
+        services.register(warehouseService)
+        services.register(taxService)
 
         database.migrate().join()
 

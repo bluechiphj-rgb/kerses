@@ -38,7 +38,6 @@ class ScenarioIntegrationTest {
         val eventBus = EventBus()
         ledger = FakeLedgerGateway()
 
-        registry.register(eventBus)
         val store = StoreService(eventBus)
         val warehouse = WarehouseService()
         val ledgerService = LedgerService(ledger)
@@ -58,9 +57,11 @@ class ScenarioIntegrationTest {
             FakeBranchGateway(),
             ledgerService,
             store,
+            warehouse,
             eventBus
         )
 
+        registry.register(eventBus)
         registry.register(store)
         registry.register(warehouse)
         registry.register(ledgerService)

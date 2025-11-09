@@ -13,7 +13,9 @@ class StoreModule : Module {
 
     override fun onEnable(services: ServiceRegistry) {
         val eventBus: EventBus = services.resolve()
-        services.register(StoreService(eventBus))
+        if (!services.contains(StoreService::class.java)) {
+            services.register(StoreService(eventBus))
+        }
         services.dashboardRegistry().register(
             ModuleDashboardGui.Descriptor(
                 id = id,

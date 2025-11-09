@@ -13,9 +13,11 @@ class TaxModule : Module {
     override val displayName: String = "Tax"
 
     override fun onEnable(services: ServiceRegistry) {
-        val db: DatabaseManager = services.resolve()
-        val eventBus: EventBus = services.resolve()
-        services.register(TaxService(db.ledgerRepository, eventBus))
+        if (!services.contains(TaxService::class.java)) {
+            val db: DatabaseManager = services.resolve()
+            val eventBus: EventBus = services.resolve()
+            services.register(TaxService(db.ledgerRepository, eventBus))
+        }
 
         services.dashboardRegistry().register(
             ModuleDashboardGui.Descriptor(

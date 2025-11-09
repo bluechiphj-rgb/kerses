@@ -8,6 +8,7 @@ import com.kwonpop.companylife.common.service.dashboardRegistry
 import com.kwonpop.companylife.modules.Module
 import com.kwonpop.companylife.modules.economy.LedgerService
 import com.kwonpop.companylife.modules.store.StoreService
+import com.kwonpop.companylife.modules.warehouse.WarehouseService
 import org.bukkit.Material
 
 class CompanyModule : Module {
@@ -18,8 +19,9 @@ class CompanyModule : Module {
         val db: DatabaseManager = services.resolve()
         val ledger: LedgerService = services.resolve()
         val store: StoreService = services.resolve()
+        val warehouse: WarehouseService = services.resolve()
         val eventBus: EventBus = services.resolve()
-        services.register(CompanyService(db.companyRepository, db.branchRepository, ledger, store, eventBus))
+        services.register(CompanyService(db.companyRepository, db.branchRepository, ledger, store, warehouse, eventBus))
 
         services.dashboardRegistry().register(
             ModuleDashboardGui.Descriptor(

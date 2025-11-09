@@ -3,8 +3,8 @@ package com.kwonpop.companylife.modules.payroll
 import com.kwonpop.companylife.common.persistence.PayrollRunEntity
 import com.kwonpop.companylife.common.service.EventBus
 import com.kwonpop.companylife.modules.economy.LedgerService
+import com.kwonpop.companylife.modules.tax.PayrollTaxBreakdown
 import com.kwonpop.companylife.modules.tax.TaxService
-import com.kwonpop.companylife.common.integration.VaultBridge
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -22,12 +22,16 @@ class PayrollService(
     private val eventBus: EventBus
 ) {
     fun runPayroll(companyId: Long, employees: List<PayrollEmployee>, period: String): CompletableFuture<PayrollRunEntity> {
-        val gross = employees.sumOf { it.grossPay }
-        val tax = taxService.calculatePayrollTax(companyId, gross)
-        val net = gross - tax
+        require(employees.isNotEmpty()) { "Employees required for payroll" }
+        val grossList = employees.map { it.grossPay() }
+        val gross = grossList.sum()
+        val breakdown = taxService.calculatePayrollTax(companyId, grossList)
+        val net = gross - breakdown.total
 
-        employees.forEach { employee ->
-            payrollBank.deposit(employee.uuid, employee.grossPay - tax / employees.size)
+        employees.forEachIndexed { index, employee ->
+            val grossPay = grossList[index]
+            val taxShare = if (gross == 0.0) 0.0 else breakdown.total * (grossPay / gross)
+            payrollBank.deposit(employee.uuid, grossPay - taxShare)
         }
 
         val run = PayrollRunEntity(
@@ -38,24 +42,50 @@ class PayrollService(
             processedAt = Instant.now()
         )
 
-        val ledgerFuture = ledgerService.append(
-            run.toLedgerEntry(tax = tax)
-        )
+        val ledgerFuture = ledgerService.append(run.toLedgerEntry(breakdown))
 
         return ledgerFuture.thenCompose {
             payrollRepository.record(run)
         }.thenApply { saved ->
-            auditService.record(UUID.randomUUID(), "payroll_run", "{\"company\":$companyId,\"period\":\"$period\"}")
-            val event = PayrollProcessedEvent(companyId, period, gross, net)
+            auditService.record(UUID.randomUUID(), "payroll_run", payrollAuditJson(companyId, period, breakdown))
+            val event = PayrollProcessedEvent(companyId, period, gross, net, breakdown)
             eventBus.publish(event)
             saved
         }
     }
+
+    private fun payrollAuditJson(companyId: Long, period: String, breakdown: PayrollTaxBreakdown): String =
+        "{" +
+            "\"company\":$companyId," +
+            "\"period\":\"$period\"," +
+            "\"tax_total\":${breakdown.total}" +
+        "}"
 }
 
-data class PayrollEmployee(val uuid: UUID, val grossPay: Double)
+data class PayrollEmployee(
+    val uuid: UUID,
+    val baseSalary: Double,
+    val hoursWorked: Double = 0.0,
+    val hourlyRate: Double = 0.0,
+    val overtimeHours: Double = 0.0,
+    val overtimeMultiplier: Double = 1.5,
+    val bonus: Double = 0.0,
+    val deductions: Double = 0.0
+) {
+    fun grossPay(): Double {
+        val hourly = hoursWorked * hourlyRate
+        val overtime = overtimeHours * hourlyRate * overtimeMultiplier
+        return baseSalary + hourly + overtime + bonus - deductions
+    }
+}
 
-data class PayrollProcessedEvent(val companyId: Long, val period: String, val gross: Double, val net: Double)
+data class PayrollProcessedEvent(
+    val companyId: Long,
+    val period: String,
+    val gross: Double,
+    val net: Double,
+    val breakdown: PayrollTaxBreakdown
+)
 
 fun interface AuditRecorder {
     fun record(actor: UUID, action: String, detailJson: String, signature: String? = null)
@@ -65,11 +95,11 @@ fun interface PayrollBank {
     fun deposit(uuid: UUID, amount: Double)
 }
 
-private fun PayrollRunEntity.toLedgerEntry(tax: Double) = com.kwonpop.companylife.common.persistence.LedgerEntryEntity(
+private fun PayrollRunEntity.toLedgerEntry(breakdown: PayrollTaxBreakdown) = com.kwonpop.companylife.common.persistence.LedgerEntryEntity(
     companyId = companyId,
     entryAt = processedAt,
     debitAccount = "PAYROLL_EXPENSE",
     creditAccount = "CASH",
     amount = net,
-    memo = "Payroll run $period (tax=$tax)"
+    memo = "Payroll run $period (tax=${breakdown.total})"
 )

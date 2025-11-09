@@ -6,6 +6,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.PriorityQueue
 import java.util.concurrent.CompletableFuture
+import kotlin.math.max
 
 interface LogisticsGateway {
     fun create(job: LogisticsJobEntity): CompletableFuture<LogisticsJobEntity>
@@ -47,23 +48,37 @@ class LogisticsService(
     }
 
     fun dispatch(orderId: Long, vehicleId: String, route: RoutePlan, slaMinutes: Long): CompletableFuture<LogisticsJobEntity> {
-        val eta = Instant.now().plus(Duration.ofMinutes(route.cost.toLong()))
+        val eta = Instant.now().plus(Duration.ofMinutes(route.cost.toLong().coerceAtLeast(1)))
+        val slaStatus = if (route.cost <= slaMinutes) "HIT" else "MISS"
         val job = LogisticsJobEntity(
             orderId = orderId,
             vehicleId = vehicleId,
             routeJson = route.nodes.joinToString(","),
             eta = eta,
-            sla = if (route.cost <= slaMinutes) "HIT" else "MISS"
+            sla = slaStatus
         )
-        val event = DeliveryDispatchedEvent(orderId, vehicleId, route)
+        val event = DeliveryDispatchedEvent(orderId, vehicleId, route, slaStatus)
         eventBus.publish(event)
         return repository.create(job).thenApply { saved ->
             eventBus.publish(DeliveryResultEvent(orderId, saved.sla))
             saved
         }
     }
+
+    fun evaluateSla(orderId: Long, slaStatus: String, travelMinutes: Double, completedAt: Instant): CompletableFuture<LogisticsEvaluation> {
+        val score = when (slaStatus) {
+            "HIT" -> 100.0
+            "MISS" -> max(0.0, 100 - travelMinutes)
+            else -> 50.0
+        }
+        val evaluation = LogisticsEvaluation(orderId, completedAt, slaStatus, score)
+        eventBus.publish(DeliverySlaEvaluatedEvent(evaluation))
+        return CompletableFuture.completedFuture(evaluation)
+    }
 }
 
 data class RoutePlan(val nodes: List<String>, val cost: Double)
-data class DeliveryDispatchedEvent(val orderId: Long, val vehicleId: String, val routePlan: RoutePlan)
+data class DeliveryDispatchedEvent(val orderId: Long, val vehicleId: String, val routePlan: RoutePlan, val slaStatus: String)
 data class DeliveryResultEvent(val orderId: Long, val slaResult: String)
+data class LogisticsEvaluation(val orderId: Long, val evaluatedAt: Instant, val slaResult: String, val slaScore: Double)
+data class DeliverySlaEvaluatedEvent(val evaluation: LogisticsEvaluation)

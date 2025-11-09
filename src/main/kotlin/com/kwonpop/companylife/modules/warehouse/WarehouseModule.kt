@@ -11,7 +11,9 @@ class WarehouseModule : Module {
     override val displayName: String = "Warehouse"
 
     override fun onEnable(services: ServiceRegistry) {
-        services.register(WarehouseService())
+        if (!services.contains(WarehouseService::class.java)) {
+            services.register(WarehouseService())
+        }
         services.dashboardRegistry().register(
             ModuleDashboardGui.Descriptor(
                 id = id,

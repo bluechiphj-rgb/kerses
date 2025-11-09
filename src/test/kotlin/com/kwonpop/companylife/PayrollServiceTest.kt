@@ -42,14 +42,14 @@ class PayrollServiceTest {
     }
 
     @Test
-    fun `runPayroll calculates net pay`() {
+    fun `runPayroll handles overtime and bonuses`() {
         val employees = listOf(
-            PayrollEmployee(UUID.randomUUID(), 500.0),
-            PayrollEmployee(UUID.randomUUID(), 700.0)
+            PayrollEmployee(UUID.randomUUID(), baseSalary = 400.0, hoursWorked = 30.0, hourlyRate = 10.0, overtimeHours = 6.0),
+            PayrollEmployee(UUID.randomUUID(), baseSalary = 550.0, bonus = 150.0, deductions = 50.0)
         )
         val result = service.runPayroll(1, employees, "W1").get()
-        assertEquals(1200.0, result.gross)
-        assertEquals(1056.0, result.net, 0.001)
+        assertEquals(1440.0, result.gross, 0.001)
+        assertEquals(1180.0, result.net, 0.001)
         assertEquals(1, payrollGateway.runs.size)
     }
 
