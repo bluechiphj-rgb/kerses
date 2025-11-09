@@ -1,0 +1,12 @@
+name: CompanyRoleplay
+main: com.example.companyroleplay.CompanyRoleplayPlugin
+version: 1.0.0
+api-version: 1.21
+authors:
+  - KersesAI
+description: 간단한 회사 역할놀이를 지원하는 페이퍼 플러그인입니다.
+commands:
+  company:
+    description: 회사 관리 명령어
+    usage: /company help
+    aliases: [corp, 회사]
