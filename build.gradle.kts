@@ -2,7 +2,6 @@ plugins {
     java
     kotlin("jvm") version "1.9.23"
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.kwonpop.companylife"
@@ -70,21 +69,11 @@ tasks {
     }
 
     jar {
-        archiveClassifier.set("plain")
-    }
-
-    shadowJar {
-        archiveClassifier.set("all")
-        minimize()
-        relocate("kotlin", "com.kwonpop.companylife.libs.kotlin")
-        relocate("kotlinx", "com.kwonpop.companylife.libs.kotlinx")
-        relocate("org.flywaydb", "com.kwonpop.companylife.libs.flyway")
-        relocate("com.zaxxer.hikari", "com.kwonpop.companylife.libs.hikari")
-        relocate("com.fasterxml.jackson", "com.kwonpop.companylife.libs.jackson")
+        archiveClassifier.set("")
     }
 
     build {
-        dependsOn(shadowJar)
+        dependsOn(jar)
     }
 
     test {
