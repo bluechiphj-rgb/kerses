@@ -19,6 +19,8 @@ kotlin {
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -30,7 +32,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:10.15.0")
     implementation("org.xerial:sqlite-jdbc:3.45.3.0")
-    implementation("mysql:mysql-connector-j:8.4.0")
+    implementation("com.mysql:mysql-connector-j:8.4.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.1")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
