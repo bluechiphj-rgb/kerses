@@ -1,0 +1,45 @@
+database:
+  type: sqlite
+  file: plugins/CompanyLife/data.db
+  mysql:
+    host: localhost
+    port: 3306
+    database: companylife
+    username: root
+    password: password
+performance:
+  cache_sizes:
+    companies: 2000
+    products: 5000
+  async_db: true
+  rate_limits:
+    money_transfer_per_min: 20
+    contract_per_hour: 10
+economy:
+  vault: true
+  starting_company_balance: 10000
+legal:
+  permits_required: true
+  anti_abuse_thresholds:
+    max_transfer: 500000
+    daily_withdraw_limit: 1000000
+payroll:
+  cycle: WEEKLY
+  overtime_multiplier: 1.5
+manufacturing:
+  enable: true
+  breakdown_chance: 0.01
+analytics:
+  enable_webhook: true
+  discord_webhook_url: ""
+i18n:
+  - ko_KR
+  - en_US
+debug: false
+messages:
+  prefix: "<gradient:#4ecdc4:#556270>[CompanyLife]</gradient> "
+  company.created: "{prefix}<green>새 회사가 설립되었습니다: <yellow>{name}</yellow></green>"
+  company.branch.created: "{prefix}<green>새 지점이 등록되었습니다: <yellow>{branch}</yellow></green>"
+  command.only_player: "{prefix}<red>플레이어만 사용 가능합니다.</red>"
+  command.no_permission: "{prefix}<red>권한이 부족합니다.</red>"
+  command.invalid_usage: "{prefix}<red>명령어 사용법이 올바르지 않습니다.</red>"

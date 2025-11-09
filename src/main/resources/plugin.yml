@@ -1,0 +1,38 @@
+name: CompanyLife
+main: com.kwonpop.companylife.CompanyLifePlugin
+version: 0.1.0-SNAPSHOT
+author: Kwonpop
+api-version: '1.21'
+folia-supported: true
+depend: []
+softdepend:
+  - Vault
+  - LuckPerms
+  - PlaceholderAPI
+  - Citizens
+  - Dynmap
+  - BlueMap
+commands:
+  company:
+    description: 회사 관리 명령어
+    usage: /<command> help
+    permission: complife.company.use
+  admin:
+    description: 관리자 명령어
+    usage: /<command> help
+    permission: complife.admin
+permissions:
+  complife.*:
+    description: CompanyLife 전체 권한
+    default: op
+    children:
+      complife.company.*: true
+      complife.hr.*: true
+      complife.finance.*: true
+      complife.admin.*: true
+  complife.admin:
+    description: 관리자 기능
+    default: op
+  complife.company.use:
+    description: 회사 명령어 사용
+    default: true
