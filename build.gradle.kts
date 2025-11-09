@@ -1,30 +1,29 @@
-import io.papermc.paperweight.tasks.ReobfJarTask
-
 plugins {
+    java
     kotlin("jvm") version "1.9.23"
-    id("io.papermc.paperweight.userdev") version "1.7.2"
+    `maven-publish`
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.kwonpop.companylife"
-version = "0.1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-    maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://jitpack.io")
-}
+version = "0.1.0"
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
+    withSourcesJar()
 }
 
 kotlin {
     jvmToolchain(21)
 }
 
+repositories {
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+}
+
 dependencies {
-    paperweight.paperDevBundle("1.21.10-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
 
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
@@ -42,20 +41,40 @@ dependencies {
 
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     compileOnly("net.luckperms:api:5.4")
-    compileOnly("me.clip:placeholderapi:2.11.5")
+    compileOnly("me.clip:placeholderapi:2.11.6")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
+}
+
 tasks {
-    test {
-        useJUnitPlatform()
+    processResources {
+        filteringCharset = "UTF-8"
+        filesMatching("plugin.yml") {
+            expand(
+                "name" to "CompanyLife",
+                "version" to project.version,
+                "main" to "com.kwonpop.companylife.CompanyLifePlugin",
+                "apiVersion" to "1.21"
+            )
+        }
+    }
+
+    jar {
+        archiveClassifier.set("plain")
     }
 
     shadowJar {
-        archiveClassifier.set("")
+        archiveClassifier.set("all")
         minimize()
         relocate("kotlin", "com.kwonpop.companylife.libs.kotlin")
         relocate("kotlinx", "com.kwonpop.companylife.libs.kotlinx")
@@ -64,8 +83,11 @@ tasks {
         relocate("com.fasterxml.jackson", "com.kwonpop.companylife.libs.jackson")
     }
 
-    withType<ReobfJarTask>().configureEach {
+    build {
         dependsOn(shadowJar)
-        inputJar.set(shadowJar.flatMap { it.archiveFile })
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
