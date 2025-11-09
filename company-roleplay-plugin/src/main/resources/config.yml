@@ -1,0 +1,5 @@
+messages:
+  prefix: "§6[회사] §r"
+  no_permission: "§c이 작업을 수행할 권한이 없습니다."
+settings:
+  default_salary: 0.0
