@@ -13,12 +13,12 @@ CompanyLife는 PaperMC 1.21.10/Folia 서버에서 "회사놀이 Enterprise++" �
 
 ## 설치 및 빌드
 
-1. Gradle Wrapper 생성(처음 한 번): `gradle wrapper`
-2. 빌드: `./gradlew clean build`
-3. 산출물: `build/libs/CompanyLife-0.1.0.jar`
+1. 필수 도구: JDK 21, Apache Maven 3.9 이상을 설치합니다.
+2. 빌드: `mvn -B clean package`
+3. 산출물: `target/CompanyLife-0.1.0.jar`
 4. 플러그인 배포: 생성된 JAR를 서버 `plugins/` 폴더에 배치하고 서버를 실행합니다.
 
-> **Shadow 플러그인 미사용**: 현재 빌드는 Paper API 의존성만 필요하므로 표준 JAR로 배포됩니다.
+> **표준 JAR 배포**: 외부 라이브러리는 서버 런타임에 의해 제공되므로 섀도우/리로케이션 없이 생성된 JAR을 그대로 사용합니다.
 
 ## 런타임 의존성
 
@@ -90,7 +90,7 @@ analytics:
 
 - **단위 테스트**: Ledger 집계, 급여 계산, EOQ/안전재고, 입찰 스코어, 물류 경로.
 - **통합 테스트**: 대표 비즈니스 시나리오, Discord Webhook degrade, 가짜 Economy 어댑터.
-- 실행: `./gradlew test`
+- 실행: `mvn test`
 
 ## 통합 기능
 
@@ -109,7 +109,7 @@ analytics:
 
 ## 개발 가이드
 
-- **언어/도구**: Kotlin 1.9, Java 21, Gradle Kotlin DSL.
+- **언어/도구**: Kotlin 1.9, Java 21, Apache Maven 3.9+.
 - **패키지 구조**: `api/`(내부 API), `common/`(공통 서비스/유틸/인프라), `modules/`(도메인 모듈).
 - **확장 방법**: 신규 모듈을 `Module` 인터페이스로 구현 후 `ModuleLoader`에 등록하고 ServiceRegistry에 필요한 서비스를 추가합니다.
 - **코딩 스타일**: Adventure MiniMessage 메시지, Result/Either 패턴, NPE 예방, 명시적 로그 레벨.
