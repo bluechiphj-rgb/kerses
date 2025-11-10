@@ -1,0 +1,2 @@
+# Map domain routing if necessary.
+# example.com smtp:[mail.example.com]
