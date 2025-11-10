@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  postfix:
+    build: ./mailserver/postfix
+    container_name: postfix
+    hostname: ${MAIL_HOSTNAME}
+    env_file: .env
+    volumes:
+      - maildata:/var/mail
+      - ./mailserver/postfix/main.cf:/etc/postfix/main.cf:ro
+      - ./mailserver/postfix/master.cf:/etc/postfix/master.cf:ro
+      - ./mailserver/postfix/sasl_passwd:/etc/postfix/sasl_passwd:ro
+      - ./mailserver/postfix/transport:/etc/postfix/transport:ro
+      - ./mailserver/dkim/keys:/etc/opendkim/keys:ro
+      - ./mailserver/dkim/default.selector:/etc/opendkim/keys/${MAIL_DOMAIN}.txt:ro
+    ports:
+      - "25:25"
+      - "587:587"
+    depends_on:
+      - dovecot
+      - rspamd
+    networks:
+      - mailnet
+
+  dovecot:
+    build: ./mailserver/dovecot
+    container_name: dovecot
+    hostname: dovecot
+    env_file: .env
+    volumes:
+      - maildata:/var/mail
+      - ./mailserver/dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./mailserver/dovecot/conf.d:/etc/dovecot/conf.d:ro
+    ports:
+      - "143:143"
+      - "993:993"
+    networks:
+      - mailnet
+
+  rspamd:
+    build: ./mailserver/rspamd
+    container_name: rspamd
+    hostname: rspamd
+    env_file: .env
+    volumes:
+      - ./mailserver/rspamd/local.d:/etc/rspamd/local.d:ro
+    ports:
+      - "11334:11334"
+    networks:
+      - mailnet
+
+  python-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: mail-api
+    env_file: .env
+    depends_on:
+      - postfix
+      - dovecot
+    ports:
+      - "8000:8000"
+    networks:
+      - mailnet
+
+volumes:
+  maildata:
+
+networks:
+  mailnet:
+    driver: bridge
