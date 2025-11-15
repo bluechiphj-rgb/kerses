@@ -1,0 +1,94 @@
+.root {
+    -fx-font-family: 'Pretendard', 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+}
+
+.background {
+    -fx-background-color: linear-gradient(to bottom right, #0f172a, #312e81, #4c1d95);
+    -fx-padding: 32;
+}
+
+.stack-pane {
+    -fx-alignment: center;
+}
+
+.label {
+    -fx-text-fill: white;
+}
+
+.track-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #f8fafc;
+    -fx-effect: dropshadow(three-pass-box, rgba(15, 23, 42, 0.5), 10, 0.3, 0, 6);
+}
+
+.status-label {
+    -fx-font-size: 14px;
+    -fx-letter-spacing: 2px;
+    -fx-text-fill: rgba(226, 232, 240, 0.85);
+}
+
+.time-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(226, 232, 240, 0.8);
+}
+
+.progress-slider {
+    -fx-pref-width: 360;
+}
+
+.progress-slider .track {
+    -fx-background-color: rgba(148, 163, 184, 0.35);
+    -fx-background-radius: 999;
+    -fx-pref-height: 8;
+}
+
+.progress-slider .thumb {
+    -fx-background-color: linear-gradient(to bottom, #fbbf24, #f97316);
+    -fx-effect: dropshadow(gaussian, rgba(249, 115, 22, 0.6), 8, 0.4, 0, 4);
+    -fx-background-radius: 999;
+    -fx-pref-height: 18;
+    -fx-pref-width: 18;
+}
+
+.pill-button {
+    -fx-background-radius: 999;
+    -fx-background-insets: 0;
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #0f172a;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.45), 12, 0.3, 0, 6);
+    -fx-padding: 12 24;
+    -fx-border-color: transparent;
+}
+
+.pill-button:hover {
+    -fx-translate-y: -2;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.55), 16, 0.45, 0, 10);
+}
+
+.pill-button:pressed {
+    -fx-translate-y: 1;
+}
+
+.pill-button:disabled {
+    -fx-opacity: 0.5;
+    -fx-effect: none;
+    -fx-cursor: default;
+}
+
+.pill-button.primary {
+    -fx-background-color: linear-gradient(to right, #4ade80, #22d3ee);
+    -fx-text-fill: #0f172a;
+}
+
+.pill-button.secondary {
+    -fx-background-color: linear-gradient(to right, #c084fc, #a855f7);
+    -fx-text-fill: white;
+}
+
+.pill-button.accent {
+    -fx-background-color: linear-gradient(to right, #f97316, #ef4444);
+    -fx-text-fill: white;
+}
